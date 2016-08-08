@@ -1,0 +1,29 @@
+{
+  "name": "point-inside-polygon",
+  "version": "0.0.1",
+  "description": "Determine if polygon has a point inside, using ray casts algorithm",
+  "main": "index.js",
+  "scripts": {
+    "test": "tape test/*.js"
+  },
+  "keywords": [
+    "point",
+    "polygon",
+    "inside"
+  ],
+  "author": "alexandr.shepard.89@gmail.com",
+  "license": "ISC",
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "karma": "^1.1.2",
+    "karma-chai": "^0.1.0",
+    "karma-chrome-launcher": "^1.0.1",
+    "karma-mocha": "^1.1.1",
+    "karma-mocha-reporter": "^2.1.0",
+    "karma-phantomjs-launcher": "^1.0.1",
+    "karma-webpack": "^1.8.0",
+    "mocha": "^3.0.2",
+    "phantomjs-prebuilt": "^2.1.11",
+    "webpack": "^1.13.1"
+  }
+}
