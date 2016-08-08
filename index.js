@@ -1,7 +1,7 @@
 /**
  * parseFromWKTtoArray
  * @param {string} wkt - string to check
- * @return {[[..number]] / Error}
+ * @return {[[..number]] | Error}
  */
 function parseFromWKTtoArray (wkt) {
     // check string for mathing WKT format
@@ -81,7 +81,7 @@ function findPointInsidePolygon(point, polygon) {
  * otherway throw error
  * @param {string} - point in WKT format
  * @param {string} - polygon in WKT format
- * @return {boolean / error}
+ * @return {boolean | error}
  */
 function polygonHasPointInside (point, polygon) {
     try {

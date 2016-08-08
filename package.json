@@ -4,7 +4,7 @@
   "description": "Determine if polygon has a point inside, using ray casts algorithm",
   "main": "index.js",
   "scripts": {
-    "test": "tape test/*.js"
+    "test": "node ./node_modules/.bin/karma start"
   },
   "keywords": [
     "point",
