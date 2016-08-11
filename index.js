@@ -5,7 +5,7 @@
  */
 function parseFromWKTtoArray (wkt) {
     // check string for mathing WKT format
-    let result = wkt.match(/\d+\s\d+/g);
+    let result = wkt.match(/\d+(?:\.\d*)?\s\d+(?:\.\d*)?/g);
     // if it match - keep going
     if (result && result.length) {
         // at this step we have array of items like ['20 10']
@@ -36,42 +36,77 @@ function parseFromWKTtoArray (wkt) {
  * @return {boolean} - result of search
  */
 function findPointInsidePolygon(point, polygon) {
-    let x = point[0];
-    let y = point[1];
-    // result (counter)
-    // since we need to determine if it has to be even or odd number
-    // we can use it as boolean flag
-    let result = false;
+    let cores = navigator.hardwareConcurrency || 4;
+    let polygonLength = polygon.length;
+    let chunkLength = Math.round(polygonLength / cores);
+    let chunks = [];
 
-    // the idea is to run ray from point horizontally (raise X, fix Y)
-    // and check every edge of polygon for crossing it (once)
-    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-        // coordinates x,y for edge's starting point
-        let xi = polygon[i][0]
-        let yi = polygon[i][1];
-        // coordinates x,y for edge's ending point
-        let xj = polygon[j][0]
-        let yj = polygon[j][1];
-
-        // ray will cross edge if his Y coordinate is within edge's Y coordinates:
-        // Y
-        //
-        //                    \ y1
-        // y - point ----> ray \ edge
-        //                      \ y2
-        // ----------------------------> X
-        //
-        let checkA = ((yi > y) != (yj > y));
-        // Is the point in the half-plane to the left of the extended edge ?
-        let checkB = (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
-        // if value of crosses is even number - point is outside of polygon
-        //  is its odd number- its inside
-        if (checkA && checkB) {
-            result = !result;
-        }
+    let leftItems = polygonLength - chunkLength * cores;
+    for (let i = 0; i < cores; i++) {
+        let startIndex = i * chunkLength;
+        chunks.push(polygon.slice(startIndex, startIndex + chunkLength));
     }
 
-    return result;
+    if (leftItems > 0) {
+        let lastChunk = chunks[cores - 1];
+        lastChunk.push.apply(lastChunk, polygon.slice(-leftItems));
+    }
+
+    for (let i = 0; i < cores; i++) {
+        let what = chunks[i][0];
+        let where = (i === 0) ? chunks[cores - 1] : chunks[i - 1];
+        where.push(what);
+    }
+
+    let result = [];
+    let counter = cores;
+    let workers = [];
+
+    let match = false;
+
+    return new Promise((resolve, reject) => {
+        //@todo add reject;
+
+        for (let i = 0; i < cores; i++) {
+            let worker = new Worker('worker.js');
+
+            workers.push(worker);
+
+            worker.postMessage({
+                action: 'process',
+                chunk: chunks[i],
+                point: point
+            });
+
+            worker.onmessage = function(event) {
+                counter--;
+
+                let chunkResult = event.data;
+
+                if (chunkResult === 'edge')  {
+                    for (let i = 0; i < workers.lenth; i++) {
+                        worker[i].postMessage({
+                            action: 'terminate'
+                        });
+                    }
+                    resolve('edge');
+                }
+
+                result.push(chunkResult);
+
+                if (counter === 0) {
+                    var value = 0;
+
+                    for (let i = 0; i < cores; i++) {
+                        value += result[i];
+                    }
+
+                    resolve(value);
+                }
+            }
+        }
+
+    });
 }
 
 /**
@@ -88,7 +123,13 @@ function polygonHasPointInside (point, polygon) {
         point = parseFromWKTtoArray(point);
         polygon = parseFromWKTtoArray(polygon);
 
-        return findPointInsidePolygon(point, polygon);
+        let promise = findPointInsidePolygon(point, polygon);
+
+        promise
+            .then((result) => {
+                return result;
+            });
+        // @add catch error
     } catch (error) {
         return error;
     }
